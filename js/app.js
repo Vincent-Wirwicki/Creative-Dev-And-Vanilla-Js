@@ -1,17 +1,14 @@
 const cursors = [...document.querySelectorAll(".cursor")];
 const sections = [...document.querySelectorAll("section")];
-const navLinks = [...document.querySelectorAll(".nav__text")];
 const navLinksWrap = [...document.querySelectorAll(".nav__wrap__text")];
 const navWraps = [...document.querySelectorAll(".nav__wrap")];
 const underlines = [...document.querySelectorAll(".nav__underline")];
 const scrollProgressInner = document.querySelector(".scroll__progress__inner");
-const preLoadText =
-  "This page is about animation and having fun with vanilla javscript";
 const preLoadTitle = document.querySelector(".pre__load__text");
 const images = [...document.querySelectorAll(".project__img")];
 const imagesWrap = [...document.querySelectorAll(".project__wrap__img")];
 // let step = 0;
-let test = 0;
+
 const state = {
   cursor: {
     current: {
@@ -26,10 +23,10 @@ const state = {
   },
   preLoad: {
     text: {
-      length: preLoadText.split(" ").length,
       tick: 300,
     },
     isComplet: false,
+    duration:3000,
   },
   scroll: {
     current: 0,
@@ -55,48 +52,32 @@ const getScrollProgress = () => {
     0;
 };
 
-const preLoadDisplayText = x => {
-  const words = preLoadText.split(" ");
-  if (x > state.preLoad.text.length) {
-    preLoadTitle.innerText = "";
-    return;
-  }
-  setTimeout(() => {
-    x++;
-    preLoadTitle.innerText = words[x - 1];
-    preLoadDisplayText(x);
-  }, state.preLoad.text.tick);
-};
+// const removePreload = () => setTimeout(() => preLoadDiv.remove(), 600);
+const onPreloadLetters = () => {
+  const letters = [...document.querySelectorAll(".pre__load__letter")];
+  setTimeout(()=>letters.forEach((letter,i) => {
+    letter.classList.add("fade__out");
+    letter.style.transitionDelay = `${i*50}ms`
+  }), 2100)
+}
 
 const onPreLoad = () => {
-  document.body.style.overflowY = "hidden";
   const preLoadDiv = document.querySelector(".pre__load");
-  const {
-    preLoad: {
-      text: {
-        tick,
-        length
-      },
-    },
-  } = state;
-  preLoadDisplayText(0);
-  // preLoadTimer();
+  // const preLoadtextWrap = document.querySelector(".pre__load__grid__text");
+  onPreloadLetters();
   setTimeout(() => {
     preLoadDiv.classList.add("fade__out");
     document.body.style.overflowY = "scroll";
     state.preLoad.isComplet = true;
-    setTimeout(() => {
-      //init first animation with observer
-      window.scrollTo({
-        top: 5
-      });
-      preLoadDiv.remove();
-    }, tick);
-  }, tick * (length + 1) + tick);
+    // preLoadtextWrap.style.clipPath="inset(100% 0 100% 0)"
+    // removePreload();
+    setTimeout(() => preLoadDiv.remove(), 600);
+  }, state.preLoad.duration);
 };
 
 //clone nav item
 const createSpan = () => {
+  const navLinks = [...document.querySelectorAll(".nav__text")];
   navLinks.forEach(link => {
     const letters = link.innerText.split("");
     link.innerHTML = "";
@@ -111,30 +92,14 @@ const createSpan = () => {
   });
 };
 
-// const updateCursorsHeightWidth = (r, opacity) => {
-//   cursors[0].style.height = `${r}px`;
-//   cursors[0].style.width = `${r}px`;
-//   cursors[1].style.opacity = `${opacity}`;
-// };
-
-// const updateCursors
-
-// const onCursorHover = () => {
-//   state.cursor.isHover ?
-//     updateCursorsHeightWidth(40, 0) :
-//     updateCursorsHeightWidth(10, 1);
-// };
-
 const onCursorHover = () => {
-  state.cursor.isHover
-    ? (cursors[1].style.background = "#f2ede4")
-    : (cursors[1].style.background = "none");
+  state.cursor.isHover 
+    ? cursors.forEach(cursor=>cursor.classList.add("hover"))
+    : cursors.forEach(cursor => cursor.classList.remove("hover"));      
 };
 
 const onCursorHoverState = () => {
-  const {
-    cursor
-  } = state;
+  const {cursor} = state;
   cursor.isHover = !cursor.isHover;
 };
 
@@ -156,30 +121,18 @@ const onCursorEvents = () => {
 
 const updateCursors = () => {
   cursors.forEach(cursor => {
-    const {
-      height
-    } = cursor.getBoundingClientRect();
-    const {
-      cursor: c,
-      ease
-    } = state;
-    c.current.x = parseFloat(lerp(c.current.x, c.target.x, ease).toFixed(2));
-    c.current.y = parseFloat(lerp(c.current.y, c.target.y, ease).toFixed(2));
+    const {height} = cursor.getBoundingClientRect();
+    const {cursor: c,ease} = state;
+    c.current.x = lerp(c.current.x, c.target.x, ease).toFixed(2);
+    c.current.y = lerp(c.current.y, c.target.y, ease).toFixed(2);
     cursor.style.transform = `translate3d(
-    ${c.current.x - height / 2}px, 
-    ${c.current.y - height / 2}px, 0)`;
+    ${parseFloat(c.current.x) - height / 2}px, 
+    ${parseFloat(c.current.y) - height / 2}px, 0)`;
   });
 };
 
-// const translateTitles = val =>
-//   titles.forEach((title, i) => {
-//     title.style.transitionDelay = `${30 * i}ms`;
-//     title.style.transform = `translateY(${-val}%)`;
-//   });
-
 const raf = () => {
   updateCursors();
-  // testRaf();
   onCursorHover();
   requestAnimationFrame(raf);
 };
@@ -199,50 +152,44 @@ const options = {
 const observeSections = new IntersectionObserver(entries => {
   entries.forEach((entry, i) => {
     const currentId = entry.target.id;
-    // const color = colors[currentId];
     if (entry.intersectionRatio >= 0.25) {
       updateCssClass(underlines, currentId);
-      updateCssClass(navLinksWrap, currentId);
-      sections[currentId].style.position = "sticky";
+      updateCssClass(navWraps, currentId);
+      // sections[currentId].style.position = "sticky";
     } else {
-      sections[currentId].style.position = "relative";
+      // sections[currentId].style.position = "relative";
     }
   });
 }, options);
 
 //Images from project section
-const observeImages = new IntersectionObserver(entries => {
-  entries.forEach((entry, i) => {
-    if (entry.isIntersecting) {
-      images[i].classList.add("active");
-      imagesWrap[i].classList.add("active");
-    } else {
-      images[i].classList.remove("active");
-      imagesWrap[i].classList.remove("active");
-    }
-  });
-}, options);
+// const observeImages = new IntersectionObserver(entries => {
+//   entries.forEach((entry, i) => {
+//     if (entry.isIntersecting) {
+//       images[i].classList.add("active");
+//       imagesWrap[i].classList.add("active");
+//     } else {
+//       images[i].classList.remove("active");
+//       imagesWrap[i].classList.remove("active");
+//     }
+//   });
+// }, options);
 
 const initObserver = () => {
   sections.forEach(section => observeSections.observe(section));
-  imagesWrap.forEach(image => observeImages.observe(image));
+  // imagesWrap.forEach(image => observeImages.observe(image));
 };
 
 const onMove = e => {
-  const {
-    cursor
-  } = state;
-  const {
-    mx,
-    my
-  } = getMousePos(e);
+  const {cursor} = state;
+  const {mx,my} = getMousePos(e);
   cursor.target.x = mx;
   cursor.target.y = my;
 };
 
 const onScroll = () => {
   getScrollProgress();
-  scrollProgressInner.style.width = `${state.scroll.progress}%`;
+  scrollProgressInner.style.height = `${state.scroll.progress}%`;
 };
 
 const onNavLinksSmothScroll = () =>
