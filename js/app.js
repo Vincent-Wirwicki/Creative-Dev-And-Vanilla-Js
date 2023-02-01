@@ -1,40 +1,9 @@
-const cursors = [...document.querySelectorAll(".cursor")];
 const sections = [...document.querySelectorAll("section")];
 const navLinksWrap = [...document.querySelectorAll(".nav__wrap__text")];
 const navWraps = [...document.querySelectorAll(".nav__wrap")];
 const underlines = [...document.querySelectorAll(".nav__underline")];
-const scrollProgressInner = document.querySelector(".scroll__progress__inner");
-const preLoadTitle = document.querySelector(".pre__load__text");
 const images = [...document.querySelectorAll(".project__img")];
 const imagesWrap = [...document.querySelectorAll(".project__wrap__img")];
-// let step = 0;
-
-const state = {
-  cursor: {
-    current: {
-      x: 0,
-      y: 0,
-    },
-    target: {
-      x: 0,
-      y: 0,
-    },
-    isHover: false,
-  },
-  preLoad: {
-    text: {
-      tick: 300,
-    },
-    isComplet: false,
-    duration:3000,
-  },
-  scroll: {
-    current: 0,
-    target: 0,
-    progress: 0,
-  },
-  ease: 0.075,
-};
 
 const lerp = (start, end, ease) => (1 - ease) * start + ease * end;
 
@@ -45,38 +14,8 @@ const getMousePos = e => {
   };
 };
 
-const getScrollProgress = () => {
-  state.scroll.progress =
-    ((window.scrollY / (document.body.scrollHeight - window.innerHeight)) *
-      100) |
-    0;
-};
-
-// const removePreload = () => setTimeout(() => preLoadDiv.remove(), 600);
-const onPreloadLetters = () => {
-  const letters = [...document.querySelectorAll(".pre__load__letter")];
-  setTimeout(()=>letters.forEach((letter,i) => {
-    letter.classList.add("fade__out");
-    letter.style.transitionDelay = `${i*50}ms`
-  }), 2100)
-}
-
-const onPreLoad = () => {
-  const preLoadDiv = document.querySelector(".pre__load");
-  // const preLoadtextWrap = document.querySelector(".pre__load__grid__text");
-  onPreloadLetters();
-  setTimeout(() => {
-    preLoadDiv.classList.add("fade__out");
-    document.body.style.overflowY = "scroll";
-    state.preLoad.isComplet = true;
-    // preLoadtextWrap.style.clipPath="inset(100% 0 100% 0)"
-    // removePreload();
-    setTimeout(() => preLoadDiv.remove(), 600);
-  }, state.preLoad.duration);
-};
-
-//clone nav item
-const createSpan = () => {
+//create span and clone nav item 
+const createNavSpan = () => {
   const navLinks = [...document.querySelectorAll(".nav__text")];
   navLinks.forEach(link => {
     const letters = link.innerText.split("");
@@ -91,51 +30,110 @@ const createSpan = () => {
     link.parentElement.append(cloneSpan);
   });
 };
-
-const onCursorHover = () => {
-  state.cursor.isHover 
-    ? cursors.forEach(cursor=>cursor.classList.add("hover"))
-    : cursors.forEach(cursor => cursor.classList.remove("hover"));      
-};
-
-const onCursorHoverState = () => {
-  const {cursor} = state;
-  cursor.isHover = !cursor.isHover;
-};
-
-const onCursorHoverElem = elem => {
-  const events = ["mouseenter", "mouseleave"];
-  if (Array.isArray(elem)) {
-    elem.forEach(el => {
-      events.forEach(event => el.addEventListener(event, onCursorHoverState));
+//nav items number = section number to work
+const onNavLinksSmothScroll = () =>
+  navWraps.forEach((item, i) => {
+    item.addEventListener("click", () => {
+      sections[i].scrollIntoView({
+        behavior: "smooth",
+      });
     });
-  } else {
-    events.forEach(event => elem.addEventListener(event, onCursorHoverState));
-  }
-};
-
-const onCursorEvents = () => {
-  onCursorHoverElem(navWraps);
-  onCursorHoverElem(images);
-};
-
-const updateCursors = () => {
-  cursors.forEach(cursor => {
-    const {height} = cursor.getBoundingClientRect();
-    const {cursor: c,ease} = state;
-    c.current.x = lerp(c.current.x, c.target.x, ease).toFixed(2);
-    c.current.y = lerp(c.current.y, c.target.y, ease).toFixed(2);
-    cursor.style.transform = `translate3d(
-    ${parseFloat(c.current.x) - height / 2}px, 
-    ${parseFloat(c.current.y) - height / 2}px, 0)`;
   });
-};
 
-const raf = () => {
-  updateCursors();
-  onCursorHover();
-  requestAnimationFrame(raf);
-};
+const addCursorHoverClassToElem = elem =>
+  Array.isArray(elem)
+    ? elem.forEach(el => el.classList.add("cursor__hover"))
+    : elem.classList.add("cursor__hover");
+
+addCursorHoverClassToElem(navLinksWrap);
+
+class Cursor {
+
+  constructor() {
+    this.cursors = [...document.querySelectorAll(".cursor")];
+    this.hoverEvents = ["mouseenter", "mouseleave"];
+    this.hoverElements = [...document.querySelectorAll(".cursor__hover")];
+    this.isHover = false;
+    this.currentX = 0;
+    this.currentY = 0;
+    this.targetX = 0;
+    this.targetY = 0;
+    this.ease = 0.075;
+  }
+
+  animate() {
+    this.cursors.forEach(cursor => {
+      const { height } = cursor.getBoundingClientRect();
+      this.targetX = lerp(this.targetX, this.currentX, this.ease).toFixed(2);
+      this.targetY = lerp(this.targetY, this.currentY, this.ease).toFixed(2);
+      cursor.style.transform = `translate3d(
+      ${parseFloat(this.targetX) - height / 2}px, 
+      ${parseFloat(this.targetY) - height / 2}px, 0)`;
+    });
+  }
+
+  onMove(e) {
+    const { mx, my } = getMousePos(e);
+    this.currentX = mx;
+    this.currentY = my;
+  }
+
+  onHover() {
+    this.isHover = !this.isHover;
+    this.isHover
+      ? this.cursors.forEach(cursor => cursor.classList.add("hover"))
+      : this.cursors.forEach(cursor => cursor.classList.remove("hover"));
+  }
+
+  addEvents() {
+    this.hoverEvents.forEach(event =>
+      this.hoverElements.forEach(element =>
+        element.addEventListener(event, this.onHover.bind(this))
+      )
+    );
+  }
+}
+
+class PreLoad {
+  
+  constructor(){
+    this.preLoadDiv = document.querySelector(".pre__load");
+    this.letters = [...document.querySelectorAll(".pre__load__letter")];
+    this.duration = 2100;
+    this.delay = 600
+  }
+
+  fadeOut(){
+    this.letters.forEach(letter => letter.classList.add('fade__out'))
+    this.preLoadDiv.classList.add("fade__out")
+  }
+
+  timeout(){
+    setTimeout(()=>{
+      this.fadeOut();
+      document.body.style.overflowY = "scroll";
+    }, this.duration)
+    setTimeout(() => this.preLoadDiv.remove(), this.duration + this.delay);
+  }
+}
+
+class ScrollProgress {
+  
+  constructor(){
+    this.element = document.querySelector(".scroll__progress__inner");
+    this.progress = 0;
+  }
+
+  calc() {
+    this.progress = 
+      (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100 | 0;
+  }
+
+  display() {
+     this.element.style.height = `${this.progress}%`;
+  }
+
+}
 
 const updateCssClass = (items, id) => {
   items.forEach(item => item.classList.remove("active"));
@@ -180,47 +178,43 @@ const initObserver = () => {
   // imagesWrap.forEach(image => observeImages.observe(image));
 };
 
-const onMove = e => {
-  const {cursor} = state;
-  const {mx,my} = getMousePos(e);
-  cursor.target.x = mx;
-  cursor.target.y = my;
+const cursor = new Cursor();
+const preLoad = new PreLoad();
+const scrollProgress = new ScrollProgress();
+
+preLoad.timeout();
+
+const raf = () => {
+  cursor.animate()
+  requestAnimationFrame(raf);
 };
-
-const onScroll = () => {
-  getScrollProgress();
-  scrollProgressInner.style.height = `${state.scroll.progress}%`;
-};
-
-const onNavLinksSmothScroll = () =>
-  navWraps.forEach((item, i) => {
-    item.addEventListener("click", () => {
-      sections[i].scrollIntoView({
-        behavior: "smooth"
-      });
-    });
-  });
-
+  
 const addEvents = () => {
-  window.addEventListener("scroll", onScroll);
-  window.addEventListener("mousemove", onMove);
-  onCursorEvents();
+  window.addEventListener("scroll", ()=>{
+    scrollProgress.calc()
+    scrollProgress.display();
+  });
+  window.addEventListener("mousemove", e => {
+    cursor.onMove(e)
+  });
+  cursor.addEvents();  
 };
 
-const app = () => {
-  onPreLoad();
-  addEvents();
+const app = () => { 
+  createNavSpan();
   onNavLinksSmothScroll();
-  createSpan();
   initObserver();
+  addEvents();
   raf();
 };
 
-// reset scroll to top page
-window.addEventListener("beforeunload", () => window.scrollTo({
-  top: 0
-}));
 window.addEventListener("load", app);
+
+// reset scroll to top page
+// window.addEventListener("beforeunload", () => window.scrollTo({
+//   top: 0
+// }));
+
 
 //if i need some stuff about scroll direction
 // direction: {
@@ -243,3 +237,7 @@ window.addEventListener("load", app);
 //   }
 // };
 // window.addEventListener("wheel", onWheel);
+
+
+
+// cursor.app();
